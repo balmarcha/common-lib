@@ -28,6 +28,24 @@ public abstract class GenericServiceImpl<E, P, D extends BaseDto, ID> implements
   protected abstract Class<E> getEntityClass();
 
   @Override
+  public D findById(ID id) throws NoContentException {
+    E entity = getRepository().findById(id).orElseThrow(() -> new NoContentException(NOT_FOUND_ID_MESSAGE + id));
+
+    return getMapper().pojoToDto(getMapper().entityToPojo(entity, new CycleAvoidingMappingContext()), new CycleAvoidingMappingContext());
+  }
+
+  @Override
+  public D findOne(Map<String, Object> filters) throws NoContentException {
+    try {
+      Example<E> example = buildExample(filters);
+      E entity = getRepository().findOne(example).orElseThrow(() -> new NoContentException(NOT_FOUND_ID_MESSAGE));
+      return getMapper().pojoToDto(getMapper().entityToPojo(entity, new CycleAvoidingMappingContext()), new CycleAvoidingMappingContext());
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
   public List<D> findAll(Map<String, Object> filters) {
     try {
       Example<E> example = buildExample(filters);
@@ -35,13 +53,6 @@ public abstract class GenericServiceImpl<E, P, D extends BaseDto, ID> implements
     } catch (IllegalAccessException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  @Override
-  public D findById(ID id) throws NoContentException {
-    E entity = getRepository().findById(id).orElseThrow(() -> new NoContentException(NOT_FOUND_ID_MESSAGE + id));
-
-    return getMapper().pojoToDto(getMapper().entityToPojo(entity, new CycleAvoidingMappingContext()), new CycleAvoidingMappingContext());
   }
 
   @Override

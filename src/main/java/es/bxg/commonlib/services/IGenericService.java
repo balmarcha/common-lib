@@ -14,6 +14,8 @@ public interface IGenericService<E, P, D, ID> {
 
   D findById(ID id) throws NoContentException;
 
+  D findOne(Map<String, Object> filters) throws NoContentException;
+
   List<D> findAll(Map<String, Object> properties);
 
   Page<D> findPage(Map<String, Object> properties, Pageable pageable);
