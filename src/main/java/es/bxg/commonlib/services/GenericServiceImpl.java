@@ -14,6 +14,9 @@ import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -126,14 +129,56 @@ public abstract class GenericServiceImpl<E, P, D extends BaseDto, ID> implements
     });
   }
 
-  private <E> Example<E> buildExample(Map<String, Object> properties) throws IllegalAccessException {
-    E entity = (E) new ObjectMapper().convertValue(properties, getEntityClass());
-    ExampleMatcher matcher = ExampleMatcher.matching();
+  private <E> Example<E> buildExample(Map<String, Object> filters) throws IllegalAccessException {
 
-    for (String key : properties.keySet()) {
-      matcher = matcher.withMatcher(key, ExampleMatcher.GenericPropertyMatchers.contains());
+    Map<String, Object> cleanFilters = clearFilters(filters);
+
+    Map<String, Object> simpleProperties = new HashMap<>();
+    Map<String, Object> nestedProperties = new HashMap<>();
+
+
+    for (Map.Entry<String, Object> entry : cleanFilters.entrySet()) {
+      String key = entry.getKey();
+      if (key.contains(".")) {
+        nestedProperties.put(key, entry.getValue());
+      } else {
+        simpleProperties.put(key, entry.getValue());
+      }
     }
 
+    E entity = (E) new ObjectMapper().convertValue(simpleProperties, getEntityClass());
+
+    for (Map.Entry<String, Object> entry : nestedProperties.entrySet()) {
+      String key = entry.getKey();
+      String[] part = key.split("\\.");
+
+      try {
+        Field field = entity.getClass().getDeclaredField(part[0]);
+        field.setAccessible(true);
+
+        Object nested = field.get(entity);
+        if(nested == null) {
+          nested = field.getType().getDeclaredConstructor().newInstance();
+        }
+
+        Field subfiels = nested.getClass().getDeclaredField(part[1]);
+        subfiels.setAccessible(true);
+
+        subfiels.set(nested, entry.getValue());
+        field.set(entity, nested);
+
+      } catch (NoSuchFieldException | InvocationTargetException | InstantiationException | NoSuchMethodException _) {}
+    }
+
+    ExampleMatcher matcher = ExampleMatcher.matching();
     return Example.of(entity, matcher);
+  }
+
+  private Map<String, Object> clearFilters(Map<String, Object> filters) {
+    filters.remove("page");
+    filters.remove("size");
+    filters.remove("sort");
+
+    return filters;
   }
 }
