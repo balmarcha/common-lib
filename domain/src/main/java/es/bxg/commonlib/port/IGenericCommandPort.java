@@ -10,5 +10,5 @@ public interface IGenericCommandPort<P, ID> {
 
   void delete(ID id);
 
-  P patch(P pojo, Map<String, Object> fields);
+  P patch(P pojo);
 }

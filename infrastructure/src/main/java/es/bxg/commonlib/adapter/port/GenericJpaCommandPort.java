@@ -30,10 +30,10 @@ public abstract class GenericJpaCommandPort<E, P extends BasePojo, ID> implement
   }
 
   @Override
-  public P patch(P pojo, Map<String, Object> fields)
+  public P patch(P pojo)
       throws NoContentException {
 
-    E entity = getMapper().pojoToEntity(recursivePatch(pojo, fields), new CycleAvoidingMappingContext());
+    E entity = getMapper().pojoToEntity(pojo, new CycleAvoidingMappingContext());
     return getMapper()
         .entityToPojo(getRepository().save(entity), new CycleAvoidingMappingContext());
   }
@@ -49,35 +49,5 @@ public abstract class GenericJpaCommandPort<E, P extends BasePojo, ID> implement
     } else {
       getRepository().delete(entity);
     }
-  }
-
-  private P recursivePatch(P pojo, Map<String, Object> fields) {
-
-    ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode entityNode = objectMapper.valueToTree(pojo);
-    JsonNode fieldsNode = objectMapper.valueToTree(fields);
-    applyPatch(entityNode, fieldsNode);
-    try {
-      return (P) objectMapper.treeToValue(entityNode, pojo.getClass());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-
-  }
-
-  private void applyPatch(JsonNode entityNode, JsonNode fieldsNode) {
-    fieldsNode.fields().forEachRemaining(entry -> {
-      String patchKey = entry.getKey();
-      JsonNode patchValue = entry.getValue();
-
-      if (entityNode.has(patchKey)) {
-        JsonNode currentValue = entityNode.get(patchKey);
-        if (currentValue.isObject() && patchValue.isObject()) {
-          applyPatch(currentValue, patchValue);
-        } else {
-          ((ObjectNode) entityNode).set(patchKey, patchValue);
-        }
-      }
-    });
   }
 }

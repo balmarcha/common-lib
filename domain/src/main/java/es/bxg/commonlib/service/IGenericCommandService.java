@@ -12,8 +12,8 @@ public interface IGenericCommandService<P, ID> {
     return getPort().save(pojo);
   }
 
-  default P update(P pojo, Map<String, Object> data) {
-    return getPort().patch(pojo, data);
+  default P patch(P pojo) {
+    return getPort().patch(pojo);
   }
 
   default void delete(ID id) {
