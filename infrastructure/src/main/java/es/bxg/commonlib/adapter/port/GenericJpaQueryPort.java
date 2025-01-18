@@ -108,8 +108,8 @@ public abstract class GenericJpaQueryPort<E, P extends BasePojo, ID> implements 
 
         Field subfiels = nested.getClass().getDeclaredField(part[1]);
         subfiels.setAccessible(true);
+        subfiels.set(nested, castValue(entry.getValue(), subfiels.getType()));
 
-        subfiels.set(nested, entry.getValue());
         field.set(entity, nested);
 
       } catch (NoSuchFieldException | InvocationTargetException | InstantiationException | NoSuchMethodException ignored) {}
@@ -117,6 +117,20 @@ public abstract class GenericJpaQueryPort<E, P extends BasePojo, ID> implements 
 
     ExampleMatcher matcher = ExampleMatcher.matching();
     return Example.of(entity, matcher);
+  }
+
+  private Object castValue(Object valor, Class<?> tipoCampo) {
+    if (tipoCampo == Long.class || tipoCampo == long.class) {
+      return Long.valueOf(valor.toString());
+    } else if (tipoCampo == Integer.class || tipoCampo == int.class) {
+      return Integer.valueOf(valor.toString());
+    } else if (tipoCampo == Double.class || tipoCampo == double.class) {
+      return Double.valueOf(valor.toString());
+    } else if (tipoCampo == String.class) {
+      return valor.toString();
+    }
+    // Agregar más casos según sea necesario
+    throw new IllegalArgumentException("No se puede convertir el valor al tipo: " + tipoCampo);
   }
 
   private Map<String, Object> clearFilters(Map<String, Object> filters) {
